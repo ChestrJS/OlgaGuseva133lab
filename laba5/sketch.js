@@ -29,6 +29,7 @@ let soundLabel;
 let musicLabel;
 let restartButton;
 let isGameOver = false;
+let isWin = false; 
 
 const SLIDER_WIDTH = 150;
 const SLIDER_HEIGHT = 10;
@@ -524,6 +525,12 @@ function createPlayer() {
             if (this.grounded && keyIsDown(87)) this.jump();
             if (keyIsDown(68)) this.moveRight();
             if (keyIsDown(65)) this.moveLeft();
+            
+            // Проверка достижения конца уровня
+            if (this.x >= worldWidth - this.width - 100 && !isWin) {
+                isWin = true;
+                backMusic.pause();
+            }
         },
 
         checkCanyon: function() {
@@ -651,8 +658,35 @@ function updateCamera() {
     cameraOffset = constrain(cameraOffset, 0, worldWidth - width);
 }
 
+function drawWinScreen() {
+    fill(0, 0, 0, 150);
+    rect(0, 0, width, height);
+    
+    fill(255);
+    stroke(0, 200, 0);
+    strokeWeight(3);
+    rect(width/2 - 200, height/2 - 120, 400, 200, 15);
+    
+    fill(0, 200, 0);
+    textSize(48);
+    textStyle(BOLD);
+    textAlign(CENTER, CENTER);
+    text("ПОБЕДА!", width/2, height/2 - 80);
+    
+    fill(0);
+    textSize(32);
+    textStyle(NORMAL);
+    text("Счет: " + score, width/2, height/2 - 20);
+    
+    soundSlider.hide();
+    musicSlider.hide();
+    soundLabel.hide();
+    musicLabel.hide();
+}
+
 function restartGame() {
     isGameOver = false;
+    isWin = false;
     cameraOffset = 0;
     score = 0;
     
@@ -704,6 +738,12 @@ function drawGameOverScreen() {
 function draw() {
     if (isGameOver) {
         drawGameOverScreen();
+        restartButton.show();
+        return;
+    }
+    
+    if (isWin) {
+        drawWinScreen();
         restartButton.show();
         return;
     }
