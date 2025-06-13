@@ -29,7 +29,12 @@ let soundLabel;
 let musicLabel;
 let restartButton;
 let isGameOver = false;
-let isWin = false; 
+let isWin = false;
+
+// Константы для прыжка
+const PLAYER_JUMP_FORCE = 20;
+const PLAYER_MAX_JUMP_HEIGHT = 250;
+const PLAYER_HORIZONTAL_JUMP_DISTANCE = 350;
 
 const SLIDER_WIDTH = 150;
 const SLIDER_HEIGHT = 10;
@@ -47,7 +52,7 @@ const PLAYER_HEIGHT = 60;
 
 const MIN_CANYON_DISTANCE = 400;
 const MIN_PLATFORM_DISTANCE_X = 200;
-const MIN_PLATFORM_DISTANCE_Y = 50;
+const MIN_PLATFORM_DISTANCE_Y = 100;
 const MIN_COIN_DISTANCE = 60;
 const MIN_ENEMY_DISTANCE = 200;
 
@@ -211,9 +216,10 @@ function createCanyonsAndPlatforms() {
         });
         
         if (random() > 0.3) {
+            let platformY = height - floor.height - 150 - random(0, min(100, PLAYER_MAX_JUMP_HEIGHT - 150));
             platforms.push(createPlatform(
                 canyonX + canyonWidth/2 - PLATFORM_WIDTH/2,
-                height - floor.height - 150 - random(0, 100)
+                platformY
             ));
         }
     }
@@ -227,7 +233,7 @@ function createAdditionalPlatforms() {
     while (platforms.length < MAX_PLATFORMS && attempts < MAX_ATTEMPTS) {
         attempts++;
         let platformX = random(200, worldWidth - 200);
-        let platformY = height - floor.height - 100 - random(0, 300);
+        let platformY = height - floor.height - 100 - random(0, PLAYER_MAX_JUMP_HEIGHT - 100);
         let validPosition = true;
         
         for (let canyon of canyons) {
@@ -250,7 +256,29 @@ function createAdditionalPlatforms() {
         }
         
         if (validPosition) {
-            platforms.push(createPlatform(platformX, platformY));
+            let reachable = false;
+            
+            if (height - floor.height - platformY <= PLAYER_MAX_JUMP_HEIGHT) {
+                reachable = true;
+            }
+            
+            if (!reachable) {
+                for (let platform of platforms) {
+                    let horizontalDist = abs(platformX - platform.x);
+                    let verticalDist = platform.y - platformY;
+                    
+                    if (verticalDist > 0 && verticalDist < PLAYER_MAX_JUMP_HEIGHT && 
+                        horizontalDist < PLAYER_HORIZONTAL_JUMP_DISTANCE && 
+                        platformY < platform.y) {
+                        reachable = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (reachable) {
+                platforms.push(createPlatform(platformX, platformY));
+            }
         }
     }
 }
@@ -499,7 +527,7 @@ function createPlayer() {
 
         jump: function() {
             if (this.grounded) {
-                this.speedGravity = -20;
+                this.speedGravity = -PLAYER_JUMP_FORCE;
                 this.grounded = false;
                 jumpSound.volume = soundVolume;
                 jumpSound.play();
@@ -526,7 +554,6 @@ function createPlayer() {
             if (keyIsDown(68)) this.moveRight();
             if (keyIsDown(65)) this.moveLeft();
             
-            // Проверка достижения конца уровня
             if (this.x >= worldWidth - this.width - 100 && !isWin) {
                 isWin = true;
                 backMusic.pause();
